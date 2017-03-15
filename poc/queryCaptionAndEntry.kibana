@@ -1,0 +1,38 @@
+GET /kaltura_entry_with_captions_index/entry/_search
+{
+  "query": {
+    "bool": {
+      "filter": {
+        "has_child": {
+          "type": "caption",
+          "query": {
+            "nested": {
+              "path": "lines",
+              "query": {
+                "bool": {
+                  "must": [
+                    {
+                      "match": {
+                        "lines.content": "highlight"
+                      }
+                    }
+                  ]
+                }
+              },
+              "inner_hits": {}
+            }
+          },
+          "inner_hits": {}
+        }
+      },
+      "must" : [
+          {
+            "match": {
+              "status": 3
+            }
+          }
+        ]
+
+    }
+  }
+}

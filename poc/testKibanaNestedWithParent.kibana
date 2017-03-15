@@ -1,0 +1,269 @@
+DELETE entry_with_captions_index
+
+PUT entry_with_captions_index
+{
+  "settings" : {
+        "index" : {
+            "number_of_shards" : 3, 
+            "number_of_replicas" : 2 
+        }
+    }, 
+    "mappings" : {
+        "entry" : {
+            "properties" : {
+                "name" : { "type" : "text" },
+				        "description" : { "type" : "text" },
+				        "partner_id" : { "type" : "keyword"},
+				        "status": {"type": "short"}
+            }
+        }, 
+        "caption" : {
+          "_parent" : {
+            "type" : "entry"
+          },
+          "properties": {
+            "lines" : {
+              "type" : "nested",
+              "properties" : {
+                "content": {
+                  "type": "text"
+                },
+                "start" : {
+                  "type": "long"
+                },
+                "end" : {
+                  "type": "long"
+                }
+              }
+            }
+          }
+        }
+    }
+}
+
+PUT /entry_with_captions_index/entry/1
+{
+  "name" : "Elad Cohen",
+  "description" : "glasses with a ponytail",
+	"partner_id" : 666,
+	"status": 2
+}
+
+PUT /entry_with_captions_index/entry/2
+{
+  "name" : "Moshe Maor",
+  "description" : "Bold & bold",
+	"partner_id" : 555,
+	"status": 1
+}
+
+PUT /entry_with_captions_index/entry/3
+{
+  "name" : "Noam Arad",
+  "description" : "New Papa",
+	"partner_id" : 8008,
+	"status": 3
+}
+
+PUT /entry_with_captions_index/entry/4
+{
+  "name" : "Bob Dylan",
+  "description" : "Father of the year",
+	"partner_id" : 777,
+	"status": 3
+}
+
+PUT /entry_with_captions_index/caption/1?parent=1
+{
+  "language" : "EN",
+  "lines" :[
+    {
+      "content": "Green",
+      "start" : 5, 
+      "end" : 10
+    },
+    {
+      "content": "Black",
+      "start" : 20, 
+      "end" : 30
+    },
+    {
+      "content": "Yellow",
+      "start" : 40, 
+      "end" : 50
+    }
+  ]
+}
+
+PUT /entry_with_captions_index/caption/2?parent=2
+{
+  "language" : "EN",
+  "lines" :[
+    {
+      "content": "Orange",
+      "start" : 5, 
+      "end" : 10
+    },
+    {
+      "content": "Red",
+      "start" : 20, 
+      "end" : 30
+    },
+    {
+      "content": "Multicolor",
+      "start" : 40, 
+      "end" : 50
+    }
+  ]
+}
+
+PUT /entry_with_captions_index/caption/3?parent=3
+{
+  "language" : "EN",
+  "lines" :[
+    {
+      "content": "Green Apple",
+      "start" : 15, 
+      "end" : 19
+    },
+    {
+      "content": "Purple",
+      "start" : 20, 
+      "end" : 30
+    },
+    {
+      "content": "Yellow Stone",
+      "start" : 40, 
+      "end" : 50
+    }
+  ]
+}
+
+PUT /entry_with_captions_index/caption/4?parent=4
+{
+  "language" : "GB",
+  "lines" :[
+    {
+      "content": "Greenland",
+      "start" : 5, 
+      "end" : 10
+    },
+    {
+      "content": "BlackMetal",
+      "start" : 20, 
+      "end" : 30
+    },
+    {
+      "content": "Yellowstone",
+      "start" : 40, 
+      "end" : 50
+    }
+  ]
+}
+
+# This is a basic search 
+GET /entry_with_captions_index/caption/_search
+{
+    "query": {
+        "nested" : {
+          "path": "lines", 
+          "query":{
+              "bool" : {
+                "must": [
+                  {
+                    "match" : {
+                      "lines.content" : "Green"
+                    }
+                  }
+                ] 
+              }
+          },
+            "inner_hits" : {}
+        }
+    }
+}
+# This is a basic search using two fields 
+GET /entry_with_captions_index/caption/_search
+{
+  "query": {
+    "nested": {
+      "path": "lines",
+      "query": {
+        "bool": {
+          "must": [
+            {
+              "match": {
+                "lines.content": "Green"
+              }
+            },
+            {
+              "range": {
+                "lines.start": {
+                  "lte": 12
+                }
+              }
+            }
+          ]
+        }
+      },
+      "inner_hits": {}
+    }
+  }
+}
+# This is a search that finds all the relevant parents simple search
+GET /entry_with_captions_index/entry/_search
+{
+  "query": {
+    "has_child": {
+      "type": "caption",
+      "query": {
+        "bool": {
+          "must": [
+            {
+              "match": {
+                "language" : "GB"
+              }
+            }
+          ]
+        }
+      },
+      "inner_hits": {}
+    }
+  }
+}
+# This is a search that finds all the relevant parents copmlex search
+GET /entry_with_captions_index/entry/_search
+{
+  "query": {
+    "has_child": {
+      "type": "caption",
+      "query": {
+        "nested": {
+          "path": "lines",
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "match": {
+                    "lines.content": "Green"
+                  }
+                },
+                {
+                  "range": {
+                    "lines.start": {
+                      "lte": 12
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "inner_hits": {}
+        }
+      },
+      "inner_hits": {}
+    }
+  }
+}
+
+
