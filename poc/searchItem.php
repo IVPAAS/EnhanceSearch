@@ -6,7 +6,7 @@ if($argc!=4)
 	exit();
 }
 
-require("../vendor/autoload.php");
+require_once("/opt/kaltura/app/vendor/autoload.php");
 require_once('/opt/kaltura/app/alpha/scripts/bootstrap.php');
 require_once('./entitlementSearch.php');
 
